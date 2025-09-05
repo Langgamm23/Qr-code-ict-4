@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Sphere | Instant QR Code Generator</title>
+    
+ 
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+   
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ewan */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* kineme baxkground */
+        .gradient-bg {
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* glass na animation*/
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* designs*/
+        .form-input:focus, .form-button:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.5); /* Indigo focus ring */
+        }
+        
+        /* QR code canvas to make it look goods goods */
+        #qrcode canvas, #qrcode img {
+            width: 100% !important;
+            height: auto !important;
+            border-radius: 0.5rem; /* Rounded corners for the QR code */
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Fade-in animation for generated QR code */
+        #qrcode-container.generated {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Custom color input swatch */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 3rem;
+            height: 2.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="gradient-bg text-gray-200 min-h-screen flex items-center justify-center p-4">
+
+    <main class="w-full max-w-md mx-auto">
+        <div class="glass-card rounded-2xl shadow-2xl p-6 md:p-8">
+            <!-- Header Section -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white tracking-tight">QR Sphere</h1>
+                <p class="text-indigo-300 mt-2">Instantly generate and customize your QR codes.</p>
+            </div>
+
+            <!-- Form Section -->
+            <form id="qr-form" class="space-y-6">
+                <!-- Text/URL Input -->
+                <div>
+                    <label for="text-input" class="block text-sm font-medium text-gray-300 mb-2">URL or Text</label>
+                    <textarea id="text-input" rows="3" placeholder="e.g., https://www.google.com" class="form-input w-full bg-white/10 border border-white/20 rounded-lg py-2 px-4 text-white placeholder-gray-400 transition-colors duration-300 focus:border-indigo-400"></textarea>
+                </div>
+                
+                <!-- Customization Options -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="fg-color" class="block text-sm font-medium text-gray-300 mb-2">Foreground</label>
+                        <input type="color" id="fg-color" value="#000000" class="form-input w-full">
+                    </div>
+                    <div>
+                        <label for="bg-color" class="block text-sm font-medium text-gray-300 mb-2">Background</label>
+                        <input type="color" id="bg-color" value="#ffffff" class="form-input w-full">
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button type="submit" class="form-button w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        Generate QR Code
+                    </button>
+                    <button type="button" id="clear-btn" class="form-button w-full bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        Clear
+                    </button>
+                </div>
+            </form>
+
+            <!-- QR Code Display Area -->
+            <div id="qrcode-container" class="mt-8 text-center flex flex-col items-center justify-center min-h-[250px] opacity-0">
+                <div id="qrcode" class="w-full max-w-[250px] mx-auto"></div>
+                <button id="download-btn" class="form-button mt-6 w-full max-w-[250px] bg-emerald-500 hover:bg-emerald-400 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hidden">
+                    Download PNG
+                </button>
+                <div id="error-message" class="text-red-400 mt-4"></div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="text-center mt-8 text-gray-400 text-sm">
+            <p>&copy; 2025 QR Sphere. A Gemini Creation.</p>
+        </footer>
+    </main>
+
+    <script>
+        // DOM element references
+        const qrForm = document.getElementById('qr-form');
+        const textInput = document.getElementById('text-input');
+        const qrcodeContainer = document.getElementById('qrcode-container');
+        const qrcodeDiv = document.getElementById('qrcode');
+        const downloadBtn = document.getElementById('download-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const errorMessageDiv = document.getElementById('error-message');
+        const fgColorInput = document.getElementById('fg-color');
+        const bgColorInput = document.getElementById('bg-color');
+        
+        let qrcode = null; // To hold the QRCode.js instance
+
+        /**
+         * Clears the QR code display and resets the form.
+         */
+        const clearQRCode = () => {
+            qrcodeDiv.innerHTML = '';
+            qrcodeContainer.classList.remove('generated');
+            downloadBtn.classList.add('hidden');
+            errorMessageDiv.textContent = '';
+            textInput.value = '';
+            qrcode = null;
+        };
+
+        /**
+         * Generates the QR code based on form inputs.
+         * @param {Event} e - The form submission event.
+         */
+        const generateQRCode = (e) => {
+            e.preventDefault();
+            
+            const text = textInput.value.trim();
+            const fgColor = fgColorInput.value;
+            const bgColor = bgColorInput.value;
+
+            // Clear previous state
+            qrcodeDiv.innerHTML = '';
+            errorMessageDiv.textContent = '';
+            
+            // Basic validation
+            if (text === '') {
+                errorMessageDiv.textContent = 'Please enter a URL or text to generate a QR code.';
+                qrcodeContainer.classList.add('generated'); // Show the container for the error message
+                downloadBtn.classList.add('hidden');
+                return;
+            }
+
+            // Create new QR code instance
+            try {
+                qrcode = new QRCode(qrcodeDiv, {
+                    text: text,
+                    width: 250,
+                    height: 250,
+                    colorDark: fgColor,
+                    colorLight: bgColor,
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Show QR code and download button with animation
+                qrcodeContainer.classList.add('generated');
+                downloadBtn.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("QR Code generation failed:", error);
+                errorMessageDiv.textContent = 'Failed to generate QR code. Please try again.';
+                qrcodeContainer.classList.add('generated');
+                downloadBtn.classList.add('hidden');
+            }
+        };
+        
+        /**
+         * Handles the download functionality for the generated QR code.
+         */
+        const handleDownload = () => {
+            if (!qrcode) return;
+            
+            // Find the generated image or canvas
+            const qrImage = qrcodeDiv.querySelector('img');
+            const qrCanvas = qrcodeDiv.querySelector('canvas');
+            
+            let dataUrl = '';
+            
+            if (qrImage) {
+                // If it's an image, we need to draw it to a canvas to download
+                const canvas = document.createElement('canvas');
+                canvas.width = qrImage.width;
+                canvas.height = qrImage.height;
+                const context = canvas.getContext('2d');
+                context.drawImage(qrImage, 0, 0);
+                dataUrl = canvas.toDataURL('image/png');
+            } else if (qrCanvas) {
+                dataUrl = qrCanvas.toDataURL('image/png');
+            }
+
+            if(dataUrl) {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = 'qrcode.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        // Event listeners
+        qrForm.addEventListener('submit', generateQRCode);
+        downloadBtn.addEventListener('click', handleDownload);
+        clearBtn.addEventListener('click', clearQRCode);
+
+    </script>
+</body>
+</html>
